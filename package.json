@@ -1,0 +1,33 @@
+{
+  "name": "share",
+  "version": "1.0.0",
+  "description": "A single use file sharing service",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lokk-In/share.git"
+  },
+  "keywords": [
+    "file",
+    "sharing",
+    "sharing",
+    "file"
+  ],
+  "author": "Nils \"Cyklan\" Fahle",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lokk-In/share/issues"
+  },
+  "homepage": "https://github.com/Lokk-In/share#readme",
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "express-fileupload": "^1.1.6"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  }
+}
