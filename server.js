@@ -4,6 +4,7 @@ const crypto = require("crypto")
 const express = require("express")
 const fileUpload = require("express-fileupload")
 const fs = require("fs")
+const nanoid = require("nanoid")
 const path = require("path")
 const app = express()
 const algorithm = "aes-256-ctr"
@@ -11,7 +12,7 @@ const key = crypto.createHash("sha256").update(process.env.KEY).digest("base64")
 
 // Set file upload limits
 app.use(fileUpload({
-    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    limits: { fileSize: process.env.MAX_FILESIZE * 1024 * 1024, files: 1 },
 }))
 
 // Serve the public directory to page index
@@ -37,7 +38,7 @@ app.post("/upload", async (req, res) => {
     const encryptedBuffer = encryptFile(file.data)
 
     // generate unique file name based on original file name
-    const uniqueFileName = generateUniqueFileName(file.name)
+    const uniqueFileName = nanoid(10)
 
     // write encrypted file to disk
     await writeFileToDisk(encryptedBuffer, uniqueFileName).catch(err => {
@@ -53,19 +54,32 @@ app.post("/upload", async (req, res) => {
 app.get("/:id", async (req, res) => {
     const id = req.params.id
 
+    let finish = true
     // read encrypted file from disk
     const encrypted = await readFileFromDisk(id).catch(err => {
         console.log(err)
         res.status(400).send()
+        finish = false
     })
+
+    if (!finish) return
+    // TODO Read file info from database
+    const filename = "testfile.name"
+    const mimetype = "image.png"
 
     // decrypt file
     const decrypted = decryptFile(encrypted)
     
     // set filename via content disposition header and send the file on its way
+    // set mimetype
     res.status(200)
-        .set("Content-Disposition", `attatchment; filename="${/* Insert filename here */"file"}"`)
+        .set({
+            "Content-Disposition": `attatchment; filename="${filename}"`,
+            mimetype
+        })
         .end(decrypted)
+
+    await deleteFileFromDisk(filename)
 })
 
 // encrypts a buffer using the aes256 algorithm
@@ -90,11 +104,6 @@ const decryptFile = buffer => {
     return result
 }
 
-const generateUniqueFileName = name => {
-    const dt = Date.now()
-    return crypto.createHash("md5").update(name + dt).digest("hex")
-}
-
 const writeFileToDisk = (buffer, name) => {
     return new Promise((resolve, reject) => {
         fs.writeFile(path.join(process.env.FILEPATH, name), buffer, err => {
@@ -112,6 +121,21 @@ const readFileFromDisk = name => {
         })
     })
 }
+
+const deleteFileFromDisk = name => {
+    return new Promise((resolve) => {
+        fs.unlink(path.join(process.env.FILEPATH, name), () => {
+            resolve()
+        })
+    })
+}
+
+// create directory to upload files to if it doesn't exist
+fs.mkdir(process.env.FILEPATH, err => {
+    if (err != null) {
+        console.error(`Did not create directory ${process.env.FILEPATH}. Directory already exists`)
+    }
+})
 
 app.listen(3000, () => {
     console.log("Started webserver on port 3000")
